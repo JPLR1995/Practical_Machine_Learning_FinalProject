@@ -1,0 +1,80 @@
+---
+title: "Course Project: Practical Machine Learning"
+author: "Juan Pablo Loaiza Ramírez"
+date: "12/1/2020"
+output: html_document
+fontsize: 10pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = FALSE, warning = FALSE, message = FALSE)
+```
+
+### Executive Summary
+One thing that people regularly do is quantify how *much* of a particular activity they do, but they rarely quantify how *well they do it*. The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants, in order to predict the manner in which they did the exercise. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har.
+
+### Loading libraries and data
+First, the two datasets (training and testing) are loaded, together with the libraries that will be used.
+```{r loadingData}
+library(caret)
+library(randomForest)
+library(rattle)
+library(rpart)
+library(rpart.plot)
+## Getting training and testing URL links
+trainingLink <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testingLink <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+## Downloading data into the directory folder
+download.file(trainingLink, destfile = "training.csv")
+download.file(testingLink, destfile="testing.csv")
+## Loading data into the workspace
+training <- read.csv("training.csv", na.strings = c("NA", "#DIV/0!", ""))
+testing <- read.csv("testing.csv", na.strings = c("NA", "#DIV/0!", ""))
+```
+
+### Cleaning data
+Second, the datasets are cleaned from unnecessary information.
+```{r cleaningData}
+## Deleting NA predictors
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+## Deleting unnecesary columns
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
+```
+
+### Partitioning training data
+Third, the training dataset is partitioned into training and validation sets, setting a seed before to make the analysis reproducible.
+```{r splitTrainingData}
+set.seed(31721)
+inTrain <- createDataPartition(training$classe, p = 0.7, list = F)
+trainTrain <- training[inTrain, ]
+trainValid <- training[-inTrain, ]
+dim(trainTrain)
+dim(trainValid)
+```
+
+### Modelling and cross validation
+Before testing a final model, different machine learning models will be trained to see their accuracy.
+```{r modelling}
+## Modelling with regression trees
+rpartModel <- train(classe ~ ., data = trainTrain, method = "rpart")
+rpartPred <- predict(rpartModel, trainValid)
+confusionMatrix(factor(trainValid$classe), rpartPred)
+fancyRpartPlot(rpartModel$finalModel)
+## Modelling with Linear Discriminant Analysis
+ldaModel <- train(classe ~ ., data = trainTrain, method = "lda")
+ldaPred <- predict(ldaModel, trainValid)
+confusionMatrix(factor(trainValid$classe), ldaPred)
+## Modelling with random forest
+rfModel <- train(classe ~ ., data = trainTrain, method = "rf")
+rfPred <- predict(rfModel, trainValid)
+confusionMatrix(factor(trainValid$classe), rfPred)
+```
+
+### Testing the chosen model
+According to the cross validation, the model with highest accuracy is random forest, although it takes a very long time to process. For that reason, the random forest model is used to predict on the test set.
+```{r finalTest}
+finalPred <- predict(rfModel, testing)
+finalPred
+```
