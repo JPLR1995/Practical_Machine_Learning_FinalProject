@@ -1,8 +1,10 @@
 ---
-title: "Course Project: Practical Machine Learning"
+title: 'Course Project: Practical Machine Learning'
 author: "Juan Pablo Loaiza Ramírez"
 date: "12/1/2020"
-output: html_document
+output: 
+  html_document:
+    keep_md: true
 fontsize: 10pt
 ---
 
